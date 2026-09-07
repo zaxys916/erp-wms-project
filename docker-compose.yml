@@ -27,9 +27,10 @@ services:
       - mysql_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uwms_user", "-pwms_password"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
+      interval: 2s
+      timeout: 10s
+      retries: 30
+      start_period: 30s
 
   redis:
     image: redis:7-alpine
