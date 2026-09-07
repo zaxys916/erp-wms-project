@@ -1,222 +1,134 @@
-# ERP-WMS 项目文档
+# ERP-WMS
 
-## 1. 项目概述
+企业资源计划 + 仓库管理系统（FastAPI + Vue3），覆盖**出入库单据流程、库存台账/流水、盘点与差异跟踪、用户与 RBAC**。
 
-ERP-WMS（企业资源规划-仓库管理系统）是一个集成的仓库管理解决方案，提供从入库、出库到库存盘点全流程的管理功能。
-
-## 2. 技术栈
-
-### 前端技术
-
-- VUE3 (Vue.TS3)
-- ElementPlus (Vue3)
-
-### 后端技术
-
-- FastAPI (ASGI 框架)
-- SQLAlchemy (ORM)
-- Pydantic (数据验证)
-
-### 数据库
-
-- PostgreSQL
-
-### 其他工具
-
-- Docker
-- Redis (用于缓存和会话管理)
-- JWT (认证与授权)
-
-## 3. 功能模块
-
-### 核心功能
-
-1. **仓库与库位管理**
-   - 库位创建、编辑、删除
-   - 库位状态跟踪（可用/占用/维护中）
-
-2. **产品与库存管理**
-   - 产品信息管理（SKU、描述、属性）
-   - 库存实时监控
-   - 库存预警设置
-
-3. **入库与出库流程**
-   - 入库单创建与审核
-   - 出库单创建与审核
-   - 流程状态跟踪
-
-4. **库存盘点功能**
-   - 盘点任务创建
-   - 实际库存记录
-   - 差异分析报告
-
-5. **用户管理**
-   - 用户角色分配（管理员/操作员）
-   - 权限控制（RBAC）
-
-## 4. API 接口说明
-
-### 基础认证
-
-- `/api/auth/login` - 用户登录
-- `/api/auth/logout` - 用户登出
-- `/api/users/me` - 获取当前用户信息
-
-### 仓库管理
-
-- `POST /api/zones` - 创建库位
-- `GET /api/zones/{id}` - 查询库位详情
-- `PUT /api/zones/{id}/enable` - 启用库位
-- `PUT /api/zones/{id}/disable` - 禁用库位
-
-### 产品管理
-
-- `POST /api/products` - 创建产品
-- `GET /api/products` - 获取所有产品
-- `GET /api/products/{id}` - 查询产品详情
-- `PUT /api/products/{id}/password` - 更新产品密码
-
-### 库存管理
-
-- `POST /api/inventory/scan` - 扫描库存
-- `GET /api/inventory/status` - 获取库存状态
-- `POST /api/inventory/discrepancy` - 提交盘点差异
-
-## 5. 数据库设计
-
-### 主要表结构
-
-1. **用户表 (users)**
-
-   ```sql
-   id SERIAL PRIMARY KEY,
-   username VARCHAR(50) UNIQUE NOT NULL,
-   email VARCHAR(100) UNIQUE NOT NULL,
-   password_hash VARCHAR(255) NOT NULL,
-   is_active BOOLEAN DEFAULT TRUE,
-   is_enabled BOOLEAN DEFAULT TRUE,
-   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-   updated_at TIMESTAMP WITH TIME ZONE
-   ```
-
-2. **库位表 (zones)**
-
-   ```sql
-   id SERIAL PRIMARY KEY,
-   zone_name VARCHAR(100) NOT NULL,
-   capacity INTEGER NOT NULL,
-   status BOOLEAN DEFAULT TRUE,  -- 是否启用
-   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-   updated_at TIMESTAMP WITH TIME ZONE
-   ```
-
-3. **产品表 (products)**
-
-   ```sql
-   id SERIAL PRIMARY KEY,
-   sku VARCHAR(50) UNIQUE NOT NULL,
-   product_name VARCHAR(200) NOT NULL,
-   description TEXT,
-   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-   updated_at TIMESTAMP WITH TIME ZONE
-   ```
-
-4. **库存表 (inventory)**
-
-   ```sql
-   id SERIAL PRIMARY KEY,
-   product_id INTEGER REFERENCES products(id),
-   zone_id INTEGER REFERENCES zones(id),
-   quantity INTEGER NOT NULL,
-   last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-   ```
-
-5. **盘点记录表 (discrepancies)**
-   ```sql
-   id SERIAL PRIMARY KEY,
-   inventory_id INTEGER REFERENCES inventory(id),
-   scanned_quantity INTEGER,
-   actual_quantity INTEGER,
-   difference INTEGER,
-   recorded_by INTEGER REFERENCES users(id),
-   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-   ```
-
-## 6. 安全策略
-
-### 认证机制
-
-- JWT (JSON Web Token) 用于身份验证和授权
-- 密码使用 bcrypt 加密存储
-- 会话管理通过 Redis 实现
-
-### 权限控制
-
-- 基于角色的访问控制（RBAC）
-- 不同角色拥有不同的操作权限
-  - 管理员：所有功能
-  - 操作员：库存操作、盘点记录查看
-
-## 7. 部署说明
-
-### 开发环境
-
-```bash
-# 安装依赖
-pip install -r requirements.txt
-
-# 启动开发服务器
-uvicorn main:app --reload
-```
-
-### 生产环境
-
-- 使用 Docker 容器化部署
-- Nginx 作为反向代理
-- 配置文件存储在 .env 文件中
-
-## 8. 日志与监控
-
-### 日志系统
-
-- 使用结构化 JSON 格式日志
-- 包含请求 ID、时间戳、用户信息等字段
-- 支持按级别分类（INFO, WARNING, ERROR）
-
-### 监控指标
-
-- API 响应时间统计
-- 错误率分析
-- 资源使用情况监控
-
-## 9. 更新日志
-
-### v1.0.0 (初始版本)
-
-- 完成基础功能开发
-- 实现用户认证与权限控制
-- 添加核心数据模型
-
-### v1.1.0 (后续更新)
-
-- 增加库存盘点功能
-- 优化性能和稳定性
-- 扩展 API 接口
-
-## 10. 贡献指南
-
-欢迎社区贡献！请遵循以下流程：
-
-1. Fork 项目仓库
-2. 创建新分支 (`git checkout -b feature/your-feature`)
-3. 提交更改 (`git commit -m 'Add new feature'`)
-4. 推送到分支 (`git push origin feature/your-feature`)
-5. 创建 Pull Request
-
-## 11. 许可证
-
-本项目采用 MIT 许可证。
+- 后端：FastAPI · SQLAlchemy 2.0 · Pydantic v2 · Alembic · JWT(bcrypt)
+- 前端：Vue3 · TypeScript · Element Plus · Pinia · Vite
+- 数据：MySQL 8 + Redis 7（Docker Compose）
 
 ---
 
-_最后更新：2026年9月7日_
+## 功能模块
+
+| 模块 | 说明 | 状态 |
+|------|------|------|
+| 用户认证 | 注册（强制 `user` 角色）/登录/JWT/当前用户/登出 | ✅ |
+| 权限控制 | RBAC：`admin` 全权限、`operator` 业务读写、`user` 只读；权限依赖挂到全部业务路由 | ✅ |
+| 仓库与库位 | 仓库 CRUD（仅 admin）；库位 CRUD + 启用/停用 + 容量占用 | ✅ |
+| 产品管理 | 产品 CRUD（SKU 唯一、8 位大写校验）；库存以台账聚合为准 | ✅ |
+| 出入库单据 | 建单 → **审核生效**（入库增/出库减），可驳回/取消；库存不足审核失败 | ✅ |
+| 库存流水 | 每次增减自动落 `inventory_movement`（含行锁，防并发超卖） | ✅ |
+| 库存盘点 | 建盘点单（账面快照）→ 录实盘 → 完成自动调账 + 生成差异报告 | ✅ |
+| 用户管理 | 用户列表/启停/重置密码（仅 admin） | ✅ |
+
+规划中：采购/销售订单、供应商/客户档案、报表统计、安全库存预警（见 `需求文档.md`）。
+
+---
+
+## 快速开始
+
+### 1. 环境与数据库
+
+```bash
+docker compose up -d          # MySQL(:3306) + Redis(:6379)
+```
+
+### 2. 后端
+
+```bash
+cd backend
+python -m venv .venv && .venv\Scripts\activate   # Windows；Linux/mac: source .venv/bin/activate
+pip install -r requirements.txt
+alembic upgrade head                             # 建表/迁移
+uvicorn src.main:app --reload --port 8000
+```
+
+### 3. 前端
+
+```bash
+cd frontend
+npm install
+npm run dev                   # http://localhost:5173（/api 自动代理到 8000）
+```
+
+默认管理员账号：`admin / admin123`（可用 `/api/auth/register` 自助注册普通账号）。
+
+### 4. 运行测试
+
+```bash
+cd backend
+pip install -r requirements-dev.txt
+python -m pytest tests -q     # 13 例，内存 SQLite，无需 MySQL
+```
+
+---
+
+## Docker 部署
+
+镜像由 CI 推送至 **GHCR**（`ghcr.io/zaxys916/erp-wms-project-backend` / `-frontend`，私有，需登录拉取）。
+
+```bash
+# 方式一：拉取 GHCR 镜像部署
+docker login ghcr.io -u <GitHub用户名> -p <PAT>
+docker compose --profile app pull
+docker compose --profile app up -d
+# 访问 http://localhost:8080
+
+# 方式二：本地源码构建
+docker compose -f docker-compose.yml -f docker-compose.build.yml --profile app up -d --build
+```
+
+> `docker compose up -d` 仍只启动 MySQL/Redis；带 `--profile app` 才会启动前后端。
+
+---
+
+## API 概览（统一前缀 `/api`）
+
+认证（前缀 `/api/auth`）：`POST /token`（OAuth2 表单）· `POST /register` · `GET /users/me` · `POST /logout`
+
+仓库/库位/产品/库存：`/warehouses`、`/zones`(含 `/zones/{id}/enable|disable`)、`/products`、`/inventory`、`GET /inventory/status`、`GET /inventory/movements`
+
+出入库单据：`/movements`（CRUD + `/movements/{id}/approve|reject|cancel`）
+
+盘点/差异：`/stocktakes`（建单/列表/详情）、`PUT /stocktakes/{id}/items/{item_id}`、`POST /stocktakes/{id}/complete`、`GET /stocktakes/discrepancies`
+
+用户/权限：`/users`（admin）、`/permission/roles`、`/permission/me/permissions`
+
+> 业务接口均需 `Authorization: Bearer <token>`。完整列表见 FastAPI 自带的 `/docs`。
+
+---
+
+## 工程化
+
+- **CI**（GitHub Actions，见 `.github/workflows/`）：后端 pytest、前端 type-check/build、PR 镜像构建、master 构建并推送 GHCR、容器冒烟
+- **数据库迁移**：Alembic 多版本管理
+- **环境变量**：根目录 `.env`（`DATABASE_URL`、`SECRET_KEY`、`CORS_ORIGINS` 逗号分隔白名单）
+
+---
+
+## 目录结构
+
+```
+├── docker-compose.yml / docker-compose.build.yml
+├── .github/workflows/        # CI + GHCR 发布
+├── backend/
+│   ├── alembic/              # 迁移版本
+│   ├── tests/                # pytest（SQLite 隔离）
+│   ├── Dockerfile
+│   └── src/
+│       ├── main.py           # FastAPI 入口（路由/CORS）
+│       ├── models.py         # ORM（10 张表）
+│       ├── security.py       # bcrypt + JWT
+│       ├── dependencies.py   # 认证与 RBAC 依赖
+│       ├── routers/          # 仓库/库位/产品/库存/单据/盘点/用户/认证/权限
+│       ├── schemas/          # Pydantic 模型
+│       └── services/stock_service.py  # 库存增减 + 流水 + 行锁
+└── frontend/
+    ├── Dockerfile / nginx.conf
+    └── src/
+        ├── api/index.ts      # axios 封装（token 拦截/401 跳转）
+        ├── router/index.ts   # 路由 + 登录守卫
+        └── views/            # 登录/首页/各业务页
+```
+
+更多需求与验收标准见 [`需求文档.md`](./需求文档.md)。

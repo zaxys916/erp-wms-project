@@ -32,7 +32,7 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(20), unique=True, index=True)
-    email = Column(String(20), unique=True, index=True)
+    email = Column(String(120), unique=True, index=True)
     password_hash = Column(String(255))
     is_active = Column(Boolean, default=True)
     role = Column(String(20), default="user")

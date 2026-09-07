@@ -6,7 +6,7 @@
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from src.models import (  # noqa: F401  重新导出 ORM 实体
     Discrepancy,
@@ -108,9 +108,17 @@ class ZoneOut(ORMModel):
 # ---------- User ----------
 class UserCreate(BaseModel):
     username: str = Field(..., min_length=1, max_length=20)
-    email: str = Field(..., max_length=20)
+    email: str = Field(..., max_length=120, description="邮箱，需包含有效域名")
     password: str = Field(..., min_length=1, description="明文密码，服务端哈希后存储")
     role: str = "user"
+
+    @field_validator("email")
+    @classmethod
+    def _check_email(cls, v: str) -> str:
+        value = v.strip().lower()
+        if "@" not in value or "." not in value.rsplit("@", 1)[-1]:
+            raise ValueError("邮箱格式不正确")
+        return value
 
 
 class UserOut(ORMModel):

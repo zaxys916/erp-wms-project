@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from src.config import CORS_ORIGINS
 from src.routers import (
     api,
     auth,
@@ -19,10 +20,10 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS配置
+# CORS 白名单：默认本地开发地址；生产通过 .env 的 CORS_ORIGINS 显式配置
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 允许所有来源，实际生产环境应改为具体域名
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
