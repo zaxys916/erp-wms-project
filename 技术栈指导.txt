@@ -1,0 +1,33 @@
+前端：
+
+  -vue
+
+  -typescript
+
+后端：
+
+🐍 Python 进阶版技术栈
+
+├── Web框架: FastAPI + Uvicorn + uv
+
+├── ORM: SQLAlchemy (异步支持)
+
+├── 数据库: MYSQL + Redis
+
+├── 任务队列: Celery + Kafka
+
+├── 缓存: Redis (连接池优化)
+
+├── 消息队列: Kafka
+
+├── 监控: Prometheus + Grafana + Jaeger + Sentry + Py-Spy
+
+├── 日志: ELK Stack / Loki
+
+├── 部署: Docker + Kubernetes
+
+├── CI/CD: GitHub Actions
+
+├── 安全: OAuth2 + JWT + CORS
+
+└── 性能：连接池 + 缓存 + 限流
