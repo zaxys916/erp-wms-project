@@ -60,7 +60,8 @@ jobs:
         run: npm run build
 
   docker-build:
-    name: 后端/前端镜像构建
+    name: 后端/前端镜像构建（PR 校验）
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

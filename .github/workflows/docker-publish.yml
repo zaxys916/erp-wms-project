@@ -1,0 +1,125 @@
+name: Docker Publish
+
+# 推送到 main/master 或打 v* 标签时：构建 → 推送 GHCR → 用推送的后端镜像做容器冒烟
+on:
+  push:
+    branches: [master, main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build-push:
+    name: 构建并推送 GHCR 镜像
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # 镜像标签规则：<owner>/<repo>-backend 与 -frontend
+      # 含 branch、sha、v* 语义化标签；master 额外 latest
+      - name: Metadata backend
+        id: meta-backend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}-backend
+          tags: |
+            type=sha
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
+
+      - name: Metadata frontend
+        id: meta-frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}-frontend
+          tags: |
+            type=sha
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
+
+      - name: Build and push backend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}-backend:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}-backend:buildcache,mode=max
+
+      - name: Build and push frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: true
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}-frontend:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}-frontend:buildcache,mode=max
+
+  smoke:
+    name: 容器冒烟（复用已推送镜像）
+    needs: build-push
+    runs-on: ubuntu-latest
+    env:
+      BACKEND_IMAGE: ${{ env.REGISTRY }}/${{ github.repository }}-backend:${{ github.sha }}
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root_password
+          MYSQL_DATABASE: wms_db
+          MYSQL_USER: wms_user
+          MYSQL_PASSWORD: wms_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h localhost -uwms_user -pwms_password"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - name: Run backend container from GHCR image
+        run: |
+          docker run -d --name wms-smoke-api \
+            -e DATABASE_URL="mysql+pymysql://wms_user:wms_password@127.0.0.1:3306/wms_db" \
+            -e SECRET_KEY="ci-smoke-secret" \
+            -p 8000:8000 \
+            "$BACKEND_IMAGE"
+
+      - name: Wait for health
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8000/health >/dev/null 2>&1; then
+              echo "backend healthy"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "backend did not become healthy" >&2
+          exit 1
+
+      - name: Verify auth guard (anonymous 401)
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/warehouses)
+          echo "anonymous /api/warehouses -> $code"
+          test "$code" = "401"
