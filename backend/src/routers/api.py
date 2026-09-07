@@ -1,11 +1,12 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from src.database import get_db
 from src.dependencies import require_permission
-from src.schemas import Warehouse, WarehouseCreate, WarehouseOut
+from src.pagination import paginate
+from src.schemas import Page, Warehouse, WarehouseCreate, WarehouseOut
 
 router = APIRouter()
 
@@ -24,13 +25,16 @@ def create_warehouse(
     return new_warehouse
 
 
-@router.get("/warehouses", response_model=List[WarehouseOut])
+@router.get("/warehouses", response_model=Page[WarehouseOut])
 def get_all_warehouses(
     db: Session = Depends(get_db),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(1000, ge=1, le=1000),
     _: None = Depends(require_permission("warehouse:read")),
 ):
-    """获取所有仓库"""
-    return db.query(Warehouse).all()
+    """分页获取所有仓库"""
+    query = db.query(Warehouse).order_by(Warehouse.id.asc())
+    return paginate(query, page, page_size)
 
 
 @router.get("/warehouses/{id}", response_model=WarehouseOut)

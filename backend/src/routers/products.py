@@ -1,11 +1,10 @@
-from typing import List
-
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from src.database import get_db
 from src.dependencies import require_permission
-from src.schemas import Product, ProductCreate, ProductOut
+from src.pagination import paginate
+from src.schemas import Page, Product, ProductCreate, ProductOut
 
 router = APIRouter()
 
@@ -24,13 +23,16 @@ def create_product(
     return new_product
 
 
-@router.get("/products", response_model=List[ProductOut])
+@router.get("/products", response_model=Page[ProductOut])
 def get_all_products(
     db: Session = Depends(get_db),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(1000, ge=1, le=1000),
     _: None = Depends(require_permission("product:read")),
 ):
-    """获取所有产品"""
-    return db.query(Product).all()
+    """分页获取所有产品"""
+    query = db.query(Product).order_by(Product.id.asc())
+    return paginate(query, page, page_size)
 
 
 @router.get("/products/{id}", response_model=ProductOut)

@@ -4,7 +4,7 @@
 `from src.schemas import WarehouseCreate, Warehouse` 一次导入。
 """
 from datetime import datetime
-from typing import List, Optional
+from typing import Generic, List, Optional, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -22,6 +22,7 @@ from src.models import (  # noqa: F401  重新导出 ORM 实体
 )
 
 __all__ = [
+    "Page",
     "WarehouseCreate",
     "WarehouseOut",
     "ProductCreate",
@@ -59,6 +60,17 @@ class ORMModel(BaseModel):
     """通用响应模型：允许从 SQLAlchemy 实例直接序列化。"""
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# 分页结果：所有列表接口统一返回 {items, total, page, page_size}
+T = TypeVar("T")
+
+
+class Page(BaseModel, Generic[T]):
+    items: List[T]
+    total: int
+    page: int
+    page_size: int
 
 
 # ---------- Warehouse ----------

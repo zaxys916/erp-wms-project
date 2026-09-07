@@ -14,7 +14,7 @@ def test_warehouse_crud_flow(client):
     # 列表包含
     resp = client.get("/api/warehouses", headers=headers)
     assert resp.status_code == 200
-    assert any(w["id"] == wh_id for w in resp.json())
+    assert any(w["id"] == wh_id for w in resp.json()["items"])
 
     # 详情
     resp = client.get(f"/api/warehouses/{wh_id}", headers=headers)

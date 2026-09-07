@@ -20,7 +20,7 @@ async function loadData() {
   loading.value = true
   try {
     const { data } = await userAPI.list()
-    users.value = data
+    users.value = data.items
   } catch (e) {
     ElMessage.error(extractError(e))
   } finally {

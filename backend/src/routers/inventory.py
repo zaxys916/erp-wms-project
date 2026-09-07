@@ -1,16 +1,16 @@
-from typing import List
-
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from src.database import get_db
 from src.dependencies import require_permission
+from src.pagination import paginate
 from src.schemas import (
     Inventory,
     InventoryCreate,
     InventoryMovement,
     InventoryMovementOut,
     InventoryOut,
+    Page,
 )
 from src.services.stock_service import apply_stock_change, set_inventory
 
@@ -60,13 +60,16 @@ def create_inventory(
     return record
 
 
-@router.get("/inventory", response_model=List[InventoryOut])
+@router.get("/inventory", response_model=Page[InventoryOut])
 def get_all_inventory(
     db: Session = Depends(get_db),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(1000, ge=1, le=1000),
     _: None = Depends(require_permission("inventory:read")),
 ):
-    """获取所有库存记录"""
-    return db.query(Inventory).all()
+    """分页获取所有库存记录"""
+    query = db.query(Inventory).order_by(Inventory.id.asc())
+    return paginate(query, page, page_size)
 
 
 @router.get("/inventory/status")
@@ -83,15 +86,16 @@ def get_inventory_status(
     }
 
 
-@router.get("/inventory/movements", response_model=List[InventoryMovementOut])
+@router.get("/inventory/movements", response_model=Page[InventoryMovementOut])
 def get_inventory_movements(
     db: Session = Depends(get_db),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(1000, ge=1, le=1000),
     _: None = Depends(require_permission("movement:read")),
 ):
-    """获取库存流水（最新在前）"""
-    return (
-        db.query(InventoryMovement).order_by(InventoryMovement.id.desc()).limit(200).all()
-    )
+    """分页获取库存流水（最新在前）"""
+    query = db.query(InventoryMovement).order_by(InventoryMovement.id.desc())
+    return paginate(query, page, page_size)
 
 
 @router.get("/inventory/{id}", response_model=InventoryOut)

@@ -33,9 +33,9 @@ async function loadList() {
   loading.value = true
   try {
     const [s, p, z] = await Promise.all([stocktakeAPI.list(), productAPI.list(), zoneAPI.list()])
-    list.value = s.data
-    products.value = p.data
-    zones.value = z.data
+    list.value = s.data.items
+    products.value = p.data.items
+    zones.value = z.data.items
   } catch (e) {
     ElMessage.error(extractError(e))
   } finally {

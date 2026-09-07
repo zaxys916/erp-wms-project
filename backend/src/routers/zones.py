@@ -1,11 +1,12 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from src.database import get_db
 from src.dependencies import require_permission
-from src.schemas import Zone, ZoneCreate, ZoneOut
+from src.pagination import paginate
+from src.schemas import Page, Zone, ZoneCreate, ZoneOut
 
 router = APIRouter()
 
@@ -24,13 +25,16 @@ def create_zone(
     return new_zone
 
 
-@router.get("/zones", response_model=List[ZoneOut])
+@router.get("/zones", response_model=Page[ZoneOut])
 def get_all_zones(
     db: Session = Depends(get_db),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(1000, ge=1, le=1000),
     _: None = Depends(require_permission("zone:read")),
 ):
-    """获取所有库位"""
-    return db.query(Zone).all()
+    """分页获取所有库位"""
+    query = db.query(Zone).order_by(Zone.id.asc())
+    return paginate(query, page, page_size)
 
 
 @router.get("/zones/{id}", response_model=ZoneOut)

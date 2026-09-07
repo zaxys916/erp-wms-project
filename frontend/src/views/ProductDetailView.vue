@@ -30,8 +30,8 @@ async function loadData() {
   try {
     const [p, i, z] = await Promise.all([productAPI.get(productId.value), inventoryAPI.list(), zoneAPI.list()])
     product.value = p.data
-    records.value = i.data
-    zones.value = z.data
+    records.value = i.data.items
+    zones.value = z.data.items
   } catch (e) {
     ElMessage.error(extractError(e))
   } finally {

@@ -56,10 +56,10 @@ async function loadData() {
       stockOrderAPI.list(),
       inventoryAPI.list()
     ])
-    products.value = p.data
-    zones.value = z.data
-    orders.value = o.data.filter((x) => x.order_type === 'in')
-    inventoryRows.value = i.data
+    products.value = p.data.items
+    zones.value = z.data.items
+    orders.value = o.data.items.filter((x) => x.order_type === 'in')
+    inventoryRows.value = i.data.items
   } catch (e) {
     ElMessage.error(extractError(e))
   } finally {

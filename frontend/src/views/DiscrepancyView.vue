@@ -27,9 +27,9 @@ async function loadData() {
       productAPI.list(),
       zoneAPI.list()
     ])
-    rows.value = d.data
-    products.value = p.data
-    zones.value = z.data
+    rows.value = d.data.items
+    products.value = p.data.items
+    zones.value = z.data.items
   } catch (e) {
     ElMessage.error(extractError(e))
   } finally {

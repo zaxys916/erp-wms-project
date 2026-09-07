@@ -34,8 +34,8 @@ async function loadData() {
   loading.value = true
   try {
     const [zoneRes, whRes] = await Promise.all([zoneAPI.list(), warehouseAPI.list()])
-    zones.value = zoneRes.data
-    warehouses.value = whRes.data
+    zones.value = zoneRes.data.items
+    warehouses.value = whRes.data.items
   } catch (e) {
     ElMessage.error(extractError(e))
   } finally {

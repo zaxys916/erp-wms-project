@@ -65,5 +65,5 @@ def test_admin_can_list_users(client):
     token = login(client)
     resp = client.get("/api/users", headers=auth(token))
     assert resp.status_code == 200
-    names = [u["username"] for u in resp.json()]
+    names = [u["username"] for u in resp.json()["items"]]
     assert "admin" in names

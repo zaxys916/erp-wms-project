@@ -1,12 +1,11 @@
-from typing import List
-
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from src.database import get_db
 from src.dependencies import require_permission
 from src.models import User
-from src.schemas import UserCreate, UserOut
+from src.pagination import paginate
+from src.schemas import Page, UserCreate, UserOut
 from src.security import get_password_hash
 
 router = APIRouter()
@@ -46,13 +45,16 @@ def create_user(
     return new_user
 
 
-@router.get("/users", response_model=List[UserOut])
+@router.get("/users", response_model=Page[UserOut])
 def get_all_users(
     db: Session = Depends(get_db),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(1000, ge=1, le=1000),
     _: None = Depends(require_permission("user:manage")),
 ):
-    """获取所有用户（仅管理员）"""
-    return db.query(User).all()
+    """分页获取所有用户（仅管理员）"""
+    query = db.query(User).order_by(User.id.asc())
+    return paginate(query, page, page_size)
 
 
 @router.get("/users/{id}", response_model=UserOut)

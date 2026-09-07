@@ -1,5 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from src.config import CORS_ORIGINS
 from src.routers import (
@@ -39,6 +41,35 @@ app.include_router(stocktake.router, prefix="/api", tags=["库存盘点"])
 app.include_router(users.router, prefix="/api", tags=["用户管理"])
 app.include_router(auth.router, prefix="/api/auth", tags=["认证"])
 app.include_router(permission.router, prefix="/api/permission", tags=["权限控制"])
+
+
+# ---------- 统一错误响应信封：{code, message, errors?} ----------
+def _error_body(code: int, message: str, errors=None) -> dict:
+    body = {"code": code, "message": message}
+    if errors is not None:
+        body["errors"] = errors
+    return body
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_handler(request: Request, exc: RequestValidationError):
+    errors = []
+    for err in exc.errors():
+        loc = ".".join(str(part) for part in err.get("loc", []) if part != "body")
+        errors.append(f"{loc}: {err.get('msg', '参数不合法')}" if loc else str(err.get("msg", "参数不合法")))
+    return JSONResponse(status_code=422, content=_error_body(422, "请求参数校验失败", errors[:10]))
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    message = exc.detail if isinstance(exc.detail, str) else "请求失败"
+    return JSONResponse(status_code=exc.status_code, content=_error_body(exc.status_code, message))
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    # 统一 500 响应，避免泄露内部堆栈
+    return JSONResponse(status_code=500, content=_error_body(500, "服务器内部错误，请稍后重试"))
 
 
 @app.get("/health")

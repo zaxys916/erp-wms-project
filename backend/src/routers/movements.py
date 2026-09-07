@@ -3,16 +3,16 @@
 单据审核通过后才真正变动库存，并写入库存流水（inventory_movement）。
 """
 from datetime import datetime
-from typing import List
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from src.database import get_db
 from src.dependencies import require_permission
 from src.models import StockOrder, User
-from src.schemas import StockOrderCreate, StockOrderOut
+from src.pagination import paginate
+from src.schemas import Page, StockOrderCreate, StockOrderOut
 from src.services.stock_service import apply_stock_change
 
 router = APIRouter()
@@ -57,13 +57,16 @@ def create_order(
     return order
 
 
-@router.get("/movements", response_model=List[StockOrderOut])
+@router.get("/movements", response_model=Page[StockOrderOut])
 def list_orders(
     db: Session = Depends(get_db),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(1000, ge=1, le=1000),
     _: None = Depends(require_permission("inventory:read")),
 ):
     """单据列表（最新在前）"""
-    return db.query(StockOrder).order_by(StockOrder.id.desc()).limit(200).all()
+    query = db.query(StockOrder).order_by(StockOrder.id.desc())
+    return paginate(query, page, page_size)
 
 
 @router.get("/movements/{id}", response_model=StockOrderOut)

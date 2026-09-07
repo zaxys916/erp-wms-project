@@ -40,13 +40,13 @@ def test_inbound_outbound_flow_with_movement_ledger(client):
 
     # 库存应 +10
     resp = client.get("/api/inventory", headers=headers)
-    inv = [r for r in resp.json() if r["product_id"] == product["id"] and r["zone_id"] == zone["id"]]
+    inv = [r for r in resp.json()["items"] if r["product_id"] == product["id"] and r["zone_id"] == zone["id"]]
     assert len(inv) == 1
     assert inv[0]["quantity"] == 10
 
     # 库存流水应包含该单据
     resp = client.get("/api/inventory/movements", headers=headers)
-    movements = resp.json()
+    movements = resp.json()["items"]
     assert any(m["ref_no"] == order["order_no"] and m["quantity"] == 10 for m in movements)
 
     # 出库单 4 → 审核通过，库存变 6
@@ -55,14 +55,14 @@ def test_inbound_outbound_flow_with_movement_ledger(client):
     assert resp.status_code == 200
 
     resp = client.get("/api/inventory", headers=headers)
-    inv = [r for r in resp.json() if r["product_id"] == product["id"] and r["zone_id"] == zone["id"]]
+    inv = [r for r in resp.json()["items"] if r["product_id"] == product["id"] and r["zone_id"] == zone["id"]]
     assert inv[0]["quantity"] == 6
 
     # 超量出库 99 → 审核应失败(400 库存不足)，单据保持 pending
     over_order = _create_order(client, token, "out", product["id"], zone["id"], 99)
     resp = client.post(f"/api/movements/{over_order['id']}/approve", headers=headers)
     assert resp.status_code == 400
-    assert "库存不足" in resp.json()["detail"]
+    assert "库存不足" in resp.json()["message"]
 
     # 取消/驳回待审核单据
     resp = client.post(f"/api/movements/{over_order['id']}/cancel", headers=headers)
@@ -108,19 +108,19 @@ def test_stocktake_complete_generates_discrepancy_and_adjusts(client):
 
     # 库存应调整为 7
     resp = client.get("/api/inventory", headers=headers)
-    inv = [r for r in resp.json() if r["product_id"] == product["id"] and r["zone_id"] == zone["id"]]
+    inv = [r for r in resp.json()["items"] if r["product_id"] == product["id"] and r["zone_id"] == zone["id"]]
     assert inv[0]["quantity"] == 7
 
     # 差异报告中应有该记录
     resp = client.get("/api/stocktakes/discrepancies", headers=headers)
-    discrepancies = resp.json()
+    discrepancies = resp.json()["items"]
     assert len(discrepancies) == 1
     assert discrepancies[0]["difference"] == -3
     assert discrepancies[0]["status"] == "open"
 
     # 流水里应有 adjust 记录，ref_no 为盘点单号
     resp = client.get("/api/inventory/movements", headers=headers)
-    movements = resp.json()
+    movements = resp.json()["items"]
     assert any(
         m["movement_type"] == "adjust" and m["ref_no"] == summary["order_no"]
         for m in movements

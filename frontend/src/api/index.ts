@@ -35,15 +35,31 @@ apiClient.interceptors.response.use(
   }
 )
 
-/** 从 AxiosError 中提取后端返回的 detail 信息 */
+/** 从 AxiosError 中提取后端返回的错误信息（统一错误信封 {code,message,errors}） */
 export function extractError(error: unknown): string {
   if (axios.isAxiosError(error)) {
-    const detail = (error.response?.data as { detail?: unknown })?.detail
-    if (typeof detail === 'string') return detail
-    if (Array.isArray(detail) && detail.length) return '数据校验失败'
+    const data = error.response?.data as {
+      message?: unknown
+      detail?: unknown
+      errors?: unknown
+    } | null
+    if (data) {
+      if (typeof data.message === 'string' && data.message) return data.message
+      if (typeof data.detail === 'string') return data.detail
+      if (Array.isArray(data.detail) && data.detail.length) return '数据校验失败'
+      if (Array.isArray(data.errors) && data.errors.length) return String(data.errors[0])
+    }
     return error.message
   }
   return error instanceof Error ? error.message : '未知错误'
+}
+
+/** 后端统一分页结构 */
+export interface Page<T> {
+  items: T[]
+  total: number
+  page: number
+  page_size: number
 }
 
 // ---------- 类型定义（与后端 schemas 对应）----------
@@ -172,7 +188,7 @@ export const authAPI = {
 
 // ---------- 仓库 ----------
 export const warehouseAPI = {
-  list: () => apiClient.get<Warehouse[]>('/warehouses'),
+  list: () => apiClient.get<Page<Warehouse>>('/warehouses'),
   get: (id: number) => apiClient.get<Warehouse>(`/warehouses/${id}`),
   create: (data: { name: string; location?: string }) => apiClient.post<Warehouse>('/warehouses', data),
   update: (id: number, data: { name: string; location?: string }) =>
@@ -182,7 +198,7 @@ export const warehouseAPI = {
 
 // ---------- 库位 ----------
 export const zoneAPI = {
-  list: () => apiClient.get<Zone[]>('/zones'),
+  list: () => apiClient.get<Page<Zone>>('/zones'),
   get: (id: number) => apiClient.get<Zone>(`/zones/${id}`),
   create: (data: { zone_name: string; capacity: number; status?: boolean; warehouse_id?: number | null }) =>
     apiClient.post<Zone>('/zones', data),
@@ -195,7 +211,7 @@ export const zoneAPI = {
 
 // ---------- 产品 ----------
 export const productAPI = {
-  list: () => apiClient.get<Product[]>('/products'),
+  list: () => apiClient.get<Page<Product>>('/products'),
   get: (id: number) => apiClient.get<Product>(`/products/${id}`),
   create: (data: { name: string; sku: string }) => apiClient.post<Product>('/products', data),
   update: (id: number, data: { name: string; sku: string }) =>
@@ -205,13 +221,13 @@ export const productAPI = {
 
 // ---------- 库存 ----------
 export const inventoryAPI = {
-  list: () => apiClient.get<Inventory[]>('/inventory'),
+  list: () => apiClient.get<Page<Inventory>>('/inventory'),
   get: (id: number) => apiClient.get<Inventory>(`/inventory/${id}`),
   status: () =>
     apiClient.get<{ total_records: number; total_quantity: number; last_updated: string | null }>(
       '/inventory/status'
     ),
-  movements: () => apiClient.get<InventoryMovement[]>('/inventory/movements'),
+  movements: () => apiClient.get<Page<InventoryMovement>>('/inventory/movements'),
   create: (data: { product_id: number; zone_id: number; quantity: number }) =>
     apiClient.post<Inventory>('/inventory', data),
   update: (id: number, data: { product_id: number; zone_id: number; quantity: number }) =>
@@ -221,7 +237,7 @@ export const inventoryAPI = {
 
 // ---------- 出入库单据（先建单、审核后生效）----------
 export const stockOrderAPI = {
-  list: () => apiClient.get<StockOrder[]>('/movements'),
+  list: () => apiClient.get<Page<StockOrder>>('/movements'),
   create: (data: {
     order_type: 'in' | 'out'
     product_id: number
@@ -236,7 +252,7 @@ export const stockOrderAPI = {
 
 // ---------- 库存盘点 ----------
 export const stocktakeAPI = {
-  list: () => apiClient.get<Stocktake[]>('/stocktakes'),
+  list: () => apiClient.get<Page<Stocktake>>('/stocktakes'),
   create: (data: { zone_id?: number | null; remark?: string }) =>
     apiClient.post<{ id: number; order_no: string; status: string; items: StocktakeItem[] }>(
       '/stocktakes',
@@ -255,12 +271,12 @@ export const stocktakeAPI = {
       adjusted_count: number
       total_diff: number
     }>(`/stocktakes/${id}/complete`),
-  discrepancies: () => apiClient.get<Discrepancy[]>('/stocktakes/discrepancies')
+  discrepancies: () => apiClient.get<Page<Discrepancy>>('/stocktakes/discrepancies')
 }
 
 // ---------- 用户 ----------
 export const userAPI = {
-  list: () => apiClient.get<User[]>('/users'),
+  list: () => apiClient.get<Page<User>>('/users'),
   get: (id: number) => apiClient.get<User>(`/users/${id}`),
   create: (data: { username: string; email: string; password: string; role?: string }) =>
     apiClient.post<User>('/users', data),

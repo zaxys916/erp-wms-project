@@ -3,10 +3,9 @@
 盘点完成后，差异非零的明细自动写入 discrepancies 差异报告，并同步调整库存（adjust 流水）。
 """
 from datetime import datetime
-from typing import List
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from src.database import get_db
@@ -19,8 +18,10 @@ from src.models import (
     User,
     Zone,
 )
+from src.pagination import paginate
 from src.schemas import (
     DiscrepancyOut,
+    Page,
     StocktakingCreate,
     StocktakingDetail,
     StocktakingItemOut,
@@ -113,22 +114,28 @@ def create_stocktaking(
     return detail
 
 
-@router.get("/stocktakes", response_model=List[StocktakingOut])
+@router.get("/stocktakes", response_model=Page[StocktakingOut])
 def list_stocktakes(
     db: Session = Depends(get_db),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(1000, ge=1, le=1000),
     _: None = Depends(require_permission("stocktake:read")),
 ):
     """盘点单列表（最新在前）"""
-    return db.query(Stocktaking).order_by(Stocktaking.id.desc()).limit(100).all()
+    query = db.query(Stocktaking).order_by(Stocktaking.id.desc())
+    return paginate(query, page, page_size)
 
 
-@router.get("/stocktakes/discrepancies", response_model=List[DiscrepancyOut])
+@router.get("/stocktakes/discrepancies", response_model=Page[DiscrepancyOut])
 def list_discrepancies(
     db: Session = Depends(get_db),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(1000, ge=1, le=1000),
     _: None = Depends(require_permission("stocktake:read")),
 ):
     """盘点差异报告列表（最新在前）"""
-    return db.query(Discrepancy).order_by(Discrepancy.id.desc()).limit(200).all()
+    query = db.query(Discrepancy).order_by(Discrepancy.id.desc())
+    return paginate(query, page, page_size)
 
 
 @router.get("/stocktakes/{id}", response_model=StocktakingDetail)
