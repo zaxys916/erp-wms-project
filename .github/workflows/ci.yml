@@ -58,3 +58,16 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  docker-build:
+    name: 后端/前端镜像构建
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build backend image
+        run: docker build -t erp-wms-backend ./backend
+
+      - name: Build frontend image
+        run: docker build -t erp-wms-frontend ./frontend

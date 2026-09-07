@@ -1,4 +1,7 @@
-version: '3.8'
+# 本地基础设施：MySQL + Redis
+# 完整部署（含后端与前端镜像）：
+#   docker compose --profile app up -d --build
+# 访问：http://localhost:8080
 
 services:
   mysql:
@@ -13,12 +16,41 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uwms_user", "-pwms_password"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
   redis:
     image: redis:7-alpine
     container_name: wms-redis
     ports:
       - "6379:6379"
+
+  backend:
+    build: ./backend
+    container_name: wms-backend
+    profiles: ["app"]
+    env_file:
+      - .env
+    environment:
+      # 容器内以服务名访问 MySQL / Redis
+      DATABASE_URL: mysql+pymysql://wms_user:wms_password@mysql:3306/wms_db
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      mysql:
+        condition: service_healthy
+    # 容器启动时自动执行 alembic 迁移（见 backend/Dockerfile）
+
+  frontend:
+    build: ./frontend
+    container_name: wms-frontend
+    profiles: ["app"]
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
 
 volumes:
   mysql_data:
