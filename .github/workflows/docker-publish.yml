@@ -110,7 +110,7 @@ jobs:
       - name: Run backend container
         run: |
           docker run -d --name wms-smoke-api \
-            -e DATABASE_URL="mysql+pymysql://wms_user:wms_password@127.0.0.1:3306/wms_db" \
+            -e DATABASE_URL="mysql+pymysql://wms_user:wms_password@host.docker.internal:3306/wms_db" \
             -e SECRET_KEY="ci-smoke-secret" \
             -p 8000:8000 \
             "$BACKEND_IMAGE"
