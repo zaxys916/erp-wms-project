@@ -29,7 +29,10 @@ services:
       - "6379:6379"
 
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
     container_name: wms-backend
     profiles: ["app"]
     env_file:
@@ -44,7 +47,10 @@ services:
     # 容器启动时自动执行 alembic 迁移（见 backend/Dockerfile）
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        NPM_CONFIG_REGISTRY: ${NPM_CONFIG_REGISTRY:-https://registry.npmjs.org/}
     container_name: wms-frontend
     profiles: ["app"]
     ports:

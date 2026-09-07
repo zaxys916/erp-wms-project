@@ -4,8 +4,10 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 # 先复制依赖清单安装依赖，利用层缓存
+# 默认官方源；国内构建可用 --build-arg NPM_CONFIG_REGISTRY=<镜像源>
+ARG NPM_CONFIG_REGISTRY=https://registry.npmjs.org/
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --registry "$NPM_CONFIG_REGISTRY"
 
 COPY . .
 RUN npm run build
