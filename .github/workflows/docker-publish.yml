@@ -107,7 +107,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run backend container from GHCR image
+      - name: Run backend container
         run: |
           docker run -d --name wms-smoke-api \
             -e DATABASE_URL="mysql+pymysql://wms_user:wms_password@127.0.0.1:3306/wms_db" \
@@ -115,19 +115,21 @@ jobs:
             -p 8000:8000 \
             "$BACKEND_IMAGE"
 
-      - name: Wait for health
+      - name: Wait for health (最大等待 120 秒)
         run: |
-          for i in $(seq 1 30); do
+          for i in $(seq 1 60); do
             if curl -sf http://localhost:8000/health >/dev/null 2>&1; then
-              echo "backend healthy"
+              echo "✅ backend 健康 (耗时 $((i*2)) 秒)"
               exit 0
             fi
+            echo "⏳ 等待中... ($i/60)"
             sleep 2
           done
-          echo "backend did not become healthy" >&2
+          echo "❌ backend 启动超时，打印日志："
+          docker logs wms-smoke-api --tail 200
           exit 1
 
-      - name: Verify auth guard (anonymous 401)
+      - name: Verify auth guard
         run: |
           code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/warehouses)
           echo "anonymous /api/warehouses -> $code"
