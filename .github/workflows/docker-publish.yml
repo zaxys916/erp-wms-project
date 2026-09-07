@@ -81,7 +81,7 @@ jobs:
     needs: build-push
     runs-on: ubuntu-latest
     env:
-      BACKEND_IMAGE: ${{ env.REGISTRY }}/${{ github.repository }}-backend:${{ github.sha }}
+      BACKEND_IMAGE: ghcr.io/${{ github.repository }}-backend:${{ github.sha }}
     services:
       mysql:
         image: mysql:8.0
