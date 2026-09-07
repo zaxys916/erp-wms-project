@@ -1,7 +1,16 @@
-# 本地基础设施：MySQL + Redis
-# 完整部署（含后端与前端镜像）：
-#   docker compose --profile app up -d --build
+# ERP-WMS 部署编排
+# 默认：从 GHCR 拉取前后端镜像（CI 推送产物）
+#   docker compose --profile app pull        # 拉取 MySQL/Redis/前后端镜像
+#   docker compose --profile app up -d       # 启动（缺镜像会自动拉取）
+# 本地源码构建（覆盖拉取）：
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml --profile app up -d --build
 # 访问：http://localhost:8080
+
+# 镜像名变量：可整体指向私有仓库或指定版本
+x-backend-image: &backend-image
+  image: ${BACKEND_IMAGE:-ghcr.io/zaxys916/erp-wms-project-backend:latest}
+x-frontend-image: &frontend-image
+  image: ${FRONTEND_IMAGE:-ghcr.io/zaxys916/erp-wms-project-frontend:latest}
 
 services:
   mysql:
@@ -29,10 +38,7 @@ services:
       - "6379:6379"
 
   backend:
-    build:
-      context: ./backend
-      args:
-        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
+    <<: *backend-image
     container_name: wms-backend
     profiles: ["app"]
     env_file:
@@ -47,10 +53,7 @@ services:
     # 容器启动时自动执行 alembic 迁移（见 backend/Dockerfile）
 
   frontend:
-    build:
-      context: ./frontend
-      args:
-        NPM_CONFIG_REGISTRY: ${NPM_CONFIG_REGISTRY:-https://registry.npmjs.org/}
+    <<: *frontend-image
     container_name: wms-frontend
     profiles: ["app"]
     ports:
