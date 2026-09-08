@@ -13,7 +13,13 @@ const shortcuts = [
   { title: '仓库与库位', desc: '管理库位容量与启用状态', path: '/zones', icon: 'Location', color: '#409eff' },
   { title: '产品管理', desc: '维护 SKU 与产品档案', path: '/products', icon: 'Goods', color: '#67c23a' },
   { title: '库存查询', desc: '查看各库位实时库存', path: '/inventory/checkpoints', icon: 'Box', color: '#e6a23c' },
-  { title: '用户管理', desc: '分配角色与访问权限', path: '/users', icon: 'User', color: '#f56c6c' }
+  { title: '用户管理', desc: '分配角色与访问权限', path: '/users', icon: 'User', color: '#f56c6c' },
+  { title: '采购订单', desc: '采购下单、审核与收货', path: '/purchases', icon: 'ShoppingCart', color: '#409eff' },
+  { title: '销售订单', desc: '销售下单、审核与发货', path: '/sales', icon: 'Sell', color: '#67c23a' },
+  { title: '供应商档案', desc: '管理供应商信息', path: '/suppliers', icon: 'OfficeBuilding', color: '#e6a23c' },
+  { title: '客户档案', desc: '管理客户信息', path: '/customers', icon: 'UserFilled', color: '#f56c6c' },
+  { title: '报表统计', desc: '库存、出入库与订单统计', path: '/reports', icon: 'DataAnalysis', color: '#409eff' },
+  { title: '库存预警', desc: '低于安全库存的产品清单', path: '/inventory/alerts', icon: 'Warning', color: '#f56c6c' }
 ]
 
 async function loadStats() {

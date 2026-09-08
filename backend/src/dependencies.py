@@ -25,6 +25,16 @@ ROLE_PERMISSIONS = {
         "movement:read",
         "stocktake:read",
         "stocktake:write",
+        "supplier:read",
+        "supplier:write",
+        "customer:read",
+        "customer:write",
+        "purchase:read",
+        "purchase:write",
+        "sale:read",
+        "sale:write",
+        "report:read",
+        "alert:read",
     ],
     # 普通注册用户仅可浏览
     "user": [
@@ -34,6 +44,12 @@ ROLE_PERMISSIONS = {
         "inventory:read",
         "movement:read",
         "stocktake:read",
+        "supplier:read",
+        "customer:read",
+        "purchase:read",
+        "sale:read",
+        "report:read",
+        "alert:read",
     ],
 }
 

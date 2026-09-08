@@ -13,7 +13,7 @@ const isEdit = ref(false)
 const editingId = ref<number | null>(null)
 const formRef = ref<FormInstance>()
 
-const form = reactive({ name: '', sku: '' })
+const form = reactive({ name: '', sku: '', safety_stock: 0, price: 0, cost: 0 })
 
 const rules: FormRules = {
   name: [{ required: true, min: 3, message: '产品名称至少 3 个字符', trigger: 'blur' }],
@@ -54,14 +54,20 @@ const filtered = computed(() => {
 function openCreate() {
   isEdit.value = false
   editingId.value = null
-  Object.assign(form, { name: '', sku: '' })
+  Object.assign(form, { name: '', sku: '', safety_stock: 0, price: 0, cost: 0 })
   dialogVisible.value = true
 }
 
 function openEdit(row: Product) {
   isEdit.value = true
   editingId.value = row.id
-  Object.assign(form, { name: row.name, sku: row.sku ?? '' })
+  Object.assign(form, {
+    name: row.name,
+    sku: row.sku ?? '',
+    safety_stock: row.safety_stock ?? 0,
+    price: Number(row.price ?? 0),
+    cost: Number(row.cost ?? 0)
+  })
   dialogVisible.value = true
 }
 
@@ -69,11 +75,18 @@ async function submit() {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
   try {
+    const payload = {
+      name: form.name,
+      sku: form.sku,
+      safety_stock: form.safety_stock,
+      price: form.price,
+      cost: form.cost
+    }
     if (isEdit.value && editingId.value != null) {
-      await productAPI.update(editingId.value, { name: form.name, sku: form.sku })
+      await productAPI.update(editingId.value, payload)
       ElMessage.success('产品已更新')
     } else {
-      await productAPI.create({ name: form.name, sku: form.sku })
+      await productAPI.create(payload)
       ElMessage.success('产品已创建')
     }
     dialogVisible.value = false
@@ -127,6 +140,16 @@ onMounted(loadData)
         <el-table-column label="库存总量" width="110">
           <template #default="{ row }">{{ stockOf(row.id) }}</template>
         </el-table-column>
+        <el-table-column prop="safety_stock" label="安全库存" width="90" />
+        <el-table-column label="成本价" width="100">
+          <template #default="{ row }">¥{{ Number(row.cost ?? 0).toFixed(2) }}</template>
+        </el-table-column>
+        <el-table-column label="销售价" width="100">
+          <template #default="{ row }">¥{{ Number(row.price ?? 0).toFixed(2) }}</template>
+        </el-table-column>
+        <el-table-column label="库存价值" width="120">
+          <template #default="{ row }">¥{{ (stockOf(row.id) * Number(row.cost ?? 0)).toFixed(2) }}</template>
+        </el-table-column>
         <el-table-column label="创建时间" width="180">
           <template #default="{ row }">{{ row.created_at ?? '-' }}</template>
         </el-table-column>
@@ -149,6 +172,15 @@ onMounted(loadData)
         </el-form-item>
         <el-form-item label="SKU" prop="sku">
           <el-input v-model="form.sku" placeholder="8 位大写字母或数字，如 TEST0001" />
+        </el-form-item>
+        <el-form-item label="安全库存">
+          <el-input-number v-model="form.safety_stock" :min="0" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="成本价">
+          <el-input-number v-model="form.cost" :min="0" :precision="2" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="销售价">
+          <el-input-number v-model="form.price" :min="0" :precision="2" style="width: 100%" />
         </el-form-item>
       </el-form>
       <template #footer>

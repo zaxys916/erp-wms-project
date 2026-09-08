@@ -7,11 +7,16 @@ from src.config import CORS_ORIGINS
 from src.routers import (
     api,
     auth,
+    customers,
     inventory,
     movements,
     permission,
     products,
+    purchases,
+    reports,
+    sales,
     stocktake,
+    suppliers,
     users,
     zones,
 )
@@ -41,6 +46,11 @@ app.include_router(stocktake.router, prefix="/api", tags=["库存盘点"])
 app.include_router(users.router, prefix="/api", tags=["用户管理"])
 app.include_router(auth.router, prefix="/api/auth", tags=["认证"])
 app.include_router(permission.router, prefix="/api/permission", tags=["权限控制"])
+app.include_router(suppliers.router, prefix="/api", tags=["供应商管理"])
+app.include_router(customers.router, prefix="/api", tags=["客户管理"])
+app.include_router(purchases.router, prefix="/api", tags=["采购订单"])
+app.include_router(sales.router, prefix="/api", tags=["销售订单"])
+app.include_router(reports.router, prefix="/api", tags=["报表统计"])
 
 
 # ---------- 统一错误响应信封：{code, message, errors?} ----------

@@ -84,6 +84,9 @@ export interface Product {
   id: number
   name: string
   sku?: string | null
+  safety_stock?: number | null
+  price?: number | null
+  cost?: number | null
   created_at?: string | null
 }
 
@@ -213,8 +216,9 @@ export const zoneAPI = {
 export const productAPI = {
   list: () => apiClient.get<Page<Product>>('/products'),
   get: (id: number) => apiClient.get<Product>(`/products/${id}`),
-  create: (data: { name: string; sku: string }) => apiClient.post<Product>('/products', data),
-  update: (id: number, data: { name: string; sku: string }) =>
+  create: (data: { name: string; sku: string; safety_stock?: number; price?: number; cost?: number }) =>
+    apiClient.post<Product>('/products', data),
+  update: (id: number, data: { name: string; sku: string; safety_stock?: number; price?: number; cost?: number }) =>
     apiClient.put<Product>(`/products/${id}`, data),
   remove: (id: number) => apiClient.delete(`/products/${id}`)
 }
@@ -284,6 +288,164 @@ export const userAPI = {
   disable: (id: number) => apiClient.put<User>(`/users/${id}/disable`),
   updatePassword: (id: number, newPassword: string) =>
     apiClient.put(`/users/${id}/password`, null, { params: { new_password: newPassword } })
+}
+
+// ---------- 阶段三：供应商 / 客户 ----------
+export interface Supplier {
+  id: number
+  name: string
+  contact?: string | null
+  phone?: string | null
+  address?: string | null
+  created_at?: string | null
+  updated_at?: string | null
+}
+
+export interface Customer {
+  id: number
+  name: string
+  contact?: string | null
+  phone?: string | null
+  address?: string | null
+  created_at?: string | null
+  updated_at?: string | null
+}
+
+// ---------- 阶段三：采购 / 销售订单 ----------
+export interface OrderItemIn {
+  product_id: number
+  zone_id: number
+  quantity: number
+  unit_price: number
+}
+
+export interface PurchaseOrder {
+  id: number
+  order_no: string
+  supplier_id: number
+  status: 'pending' | 'approved' | 'received' | 'cancelled'
+  total_amount: number
+  remark?: string | null
+  created_by?: number | null
+  approved_by?: number | null
+  created_at?: string | null
+  approved_at?: string | null
+  received_at?: string | null
+}
+
+export interface PurchaseOrderItem {
+  id: number
+  purchase_order_id: number
+  product_id: number
+  zone_id: number
+  quantity: number
+  unit_price: number
+  amount: number
+}
+
+export interface PurchaseOrderDetail extends PurchaseOrder {
+  items: PurchaseOrderItem[]
+}
+
+export interface SalesOrder {
+  id: number
+  order_no: string
+  customer_id: number
+  status: 'pending' | 'approved' | 'shipped' | 'cancelled'
+  total_amount: number
+  remark?: string | null
+  created_by?: number | null
+  approved_by?: number | null
+  created_at?: string | null
+  approved_at?: string | null
+  shipped_at?: string | null
+}
+
+export interface SalesOrderItem {
+  id: number
+  sale_order_id: number
+  product_id: number
+  zone_id: number
+  quantity: number
+  unit_price: number
+  amount: number
+}
+
+export interface SalesOrderDetail extends SalesOrder {
+  items: SalesOrderItem[]
+}
+
+export interface InventorySummary {
+  total_records: number
+  total_quantity: number
+  product_count: number
+  inventory_value: number
+}
+
+export interface MovementTrendPoint {
+  date: string
+  in_qty: number
+  out_qty: number
+}
+
+export interface OrderStat {
+  status: string
+  count: number
+  amount: number
+}
+
+export interface StockAlert {
+  product_id: number
+  name: string
+  sku?: string | null
+  total_qty: number
+  safety_stock: number
+  deficit: number
+}
+
+const partnerCRUD = <T>(path: string) => ({
+  list: () => apiClient.get<Page<T>>(path),
+  get: (id: number) => apiClient.get<T>(`${path}/${id}`),
+  create: (data: { name: string; contact?: string; phone?: string; address?: string }) =>
+    apiClient.post<T>(path, data),
+  update: (id: number, data: { name: string; contact?: string; phone?: string; address?: string }) =>
+    apiClient.put<T>(`${path}/${id}`, data),
+  remove: (id: number) => apiClient.delete(`${path}/${id}`)
+})
+
+export const supplierAPI = partnerCRUD<Supplier>('/suppliers')
+export const customerAPI = partnerCRUD<Customer>('/customers')
+
+// ---------- 阶段三：采购订单 ----------
+export const purchaseAPI = {
+  list: () => apiClient.get<Page<PurchaseOrder>>('/purchases'),
+  get: (id: number) => apiClient.get<PurchaseOrderDetail>(`/purchases/${id}`),
+  create: (data: { supplier_id: number; remark?: string; items: OrderItemIn[] }) =>
+    apiClient.post<PurchaseOrderDetail>('/purchases', data),
+  approve: (id: number) => apiClient.post<PurchaseOrderDetail>(`/purchases/${id}/approve`),
+  receive: (id: number) => apiClient.post<PurchaseOrderDetail>(`/purchases/${id}/receive`),
+  cancel: (id: number) => apiClient.post<PurchaseOrderDetail>(`/purchases/${id}/cancel`)
+}
+
+// ---------- 阶段三：销售订单 ----------
+export const saleAPI = {
+  list: () => apiClient.get<Page<SalesOrder>>('/sales'),
+  get: (id: number) => apiClient.get<SalesOrderDetail>(`/sales/${id}`),
+  create: (data: { customer_id: number; remark?: string; items: OrderItemIn[] }) =>
+    apiClient.post<SalesOrderDetail>('/sales', data),
+  approve: (id: number) => apiClient.post<SalesOrderDetail>(`/sales/${id}/approve`),
+  ship: (id: number) => apiClient.post<SalesOrderDetail>(`/sales/${id}/ship`),
+  cancel: (id: number) => apiClient.post<SalesOrderDetail>(`/sales/${id}/cancel`)
+}
+
+// ---------- 阶段三：报表统计 ----------
+export const reportAPI = {
+  inventorySummary: () => apiClient.get<InventorySummary>('/reports/inventory-summary'),
+  movementTrend: (days = 30) =>
+    apiClient.get<MovementTrendPoint[]>('/reports/movement-trend', { params: { days } }),
+  orderStats: () =>
+    apiClient.get<{ purchase: OrderStat[]; sale: OrderStat[] }>('/reports/order-stats'),
+  stockAlerts: () => apiClient.get<StockAlert[]>('/reports/stock-alerts')
 }
 
 export default apiClient

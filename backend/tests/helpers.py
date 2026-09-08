@@ -43,7 +43,20 @@ def create_zone(client: TestClient, token: str, zone_name: str, warehouse_id: in
     return resp.json()
 
 
-def create_product(client: TestClient, token: str, name: str, sku: str) -> dict:
-    resp = client.post("/api/products", json={"name": name, "sku": sku}, headers=auth(token))
+def create_product(
+    client: TestClient,
+    token: str,
+    name: str,
+    sku: str,
+    *,
+    safety_stock: int = 0,
+    price: float = 0,
+    cost: float = 0,
+) -> dict:
+    resp = client.post(
+        "/api/products",
+        json={"name": name, "sku": sku, "safety_stock": safety_stock, "price": price, "cost": cost},
+        headers=auth(token),
+    )
     assert resp.status_code == 200, f"创建产品失败: {resp.text}"
     return resp.json()

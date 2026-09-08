@@ -4,18 +4,25 @@
 `from src.schemas import WarehouseCreate, Warehouse` 一次导入。
 """
 from datetime import datetime
+from decimal import Decimal
 from typing import Generic, List, Optional, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from src.models import (  # noqa: F401  重新导出 ORM 实体
+    Customer,
     Discrepancy,
     Inventory,
     InventoryMovement,
     Product,
+    PurchaseOrder,
+    PurchaseOrderItem,
+    SalesOrder,
+    SalesOrderItem,
     StockOrder,
     Stocktaking,
     StocktakingItem,
+    Supplier,
     User,
     Warehouse,
     Zone,
@@ -42,6 +49,20 @@ __all__ = [
     "StocktakingItemUpdate",
     "StocktakingDetail",
     "DiscrepancyOut",
+    "SupplierCreate",
+    "SupplierOut",
+    "CustomerCreate",
+    "CustomerOut",
+    "PurchaseOrderItemIn",
+    "PurchaseOrderCreate",
+    "PurchaseOrderOut",
+    "PurchaseOrderItemOut",
+    "PurchaseOrderDetail",
+    "SalesOrderItemIn",
+    "SalesOrderCreate",
+    "SalesOrderOut",
+    "SalesOrderItemOut",
+    "SalesOrderDetail",
     # 重新导出的 ORM 实体
     "User",
     "Warehouse",
@@ -53,6 +74,12 @@ __all__ = [
     "Stocktaking",
     "StocktakingItem",
     "Discrepancy",
+    "Supplier",
+    "Customer",
+    "PurchaseOrder",
+    "PurchaseOrderItem",
+    "SalesOrder",
+    "SalesOrderItem",
 ]
 
 
@@ -90,12 +117,18 @@ class WarehouseOut(ORMModel):
 class ProductCreate(BaseModel):
     name: str = Field(..., min_length=3)
     sku: str = Field(..., pattern=r"^[A-Z0-9]{8}$")
+    safety_stock: int = Field(default=0, ge=0)
+    price: Decimal = Field(default=Decimal("0"), ge=0)
+    cost: Decimal = Field(default=Decimal("0"), ge=0)
 
 
 class ProductOut(ORMModel):
     id: int
     name: str
     sku: Optional[str] = None
+    safety_stock: Optional[int] = None
+    price: Optional[Decimal] = None
+    cost: Optional[Decimal] = None
     created_at: Optional[datetime] = None
 
 
@@ -242,3 +275,144 @@ class DiscrepancyOut(ORMModel):
     status: str  # open / adjusted
     handled_by: Optional[int] = None
     created_at: Optional[datetime] = None
+
+
+# ---------- 供应商 / 客户 ----------
+class SupplierCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    contact: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
+
+
+class SupplierOut(ORMModel):
+    id: int
+    name: str
+    contact: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+
+class CustomerCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    contact: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
+
+
+class CustomerOut(ORMModel):
+    id: int
+    name: str
+    contact: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+
+# ---------- 采购订单 ----------
+class PurchaseOrderItemIn(BaseModel):
+    product_id: int
+    zone_id: int
+    quantity: int = Field(..., ge=1)
+    unit_price: Decimal = Field(default=Decimal("0"), ge=0)
+
+
+class PurchaseOrderCreate(BaseModel):
+    supplier_id: int
+    remark: Optional[str] = None
+    items: List[PurchaseOrderItemIn] = Field(..., min_length=1)
+
+
+class PurchaseOrderItemOut(ORMModel):
+    id: int
+    purchase_order_id: int
+    product_id: int
+    zone_id: int
+    quantity: int
+    unit_price: Decimal
+    amount: Decimal
+
+
+class PurchaseOrderDetail(ORMModel):
+    id: int
+    order_no: str
+    supplier_id: int
+    status: str
+    total_amount: Decimal
+    remark: Optional[str] = None
+    created_by: Optional[int] = None
+    approved_by: Optional[int] = None
+    created_at: Optional[datetime] = None
+    approved_at: Optional[datetime] = None
+    received_at: Optional[datetime] = None
+    items: List[PurchaseOrderItemOut] = []
+
+
+class PurchaseOrderOut(ORMModel):
+    id: int
+    order_no: str
+    supplier_id: int
+    status: str
+    total_amount: Decimal
+    remark: Optional[str] = None
+    created_by: Optional[int] = None
+    approved_by: Optional[int] = None
+    created_at: Optional[datetime] = None
+    approved_at: Optional[datetime] = None
+    received_at: Optional[datetime] = None
+
+
+# ---------- 销售订单 ----------
+class SalesOrderItemIn(BaseModel):
+    product_id: int
+    zone_id: int
+    quantity: int = Field(..., ge=1)
+    unit_price: Decimal = Field(default=Decimal("0"), ge=0)
+
+
+class SalesOrderCreate(BaseModel):
+    customer_id: int
+    remark: Optional[str] = None
+    items: List[SalesOrderItemIn] = Field(..., min_length=1)
+
+
+class SalesOrderItemOut(ORMModel):
+    id: int
+    sale_order_id: int
+    product_id: int
+    zone_id: int
+    quantity: int
+    unit_price: Decimal
+    amount: Decimal
+
+
+class SalesOrderDetail(ORMModel):
+    id: int
+    order_no: str
+    customer_id: int
+    status: str
+    total_amount: Decimal
+    remark: Optional[str] = None
+    created_by: Optional[int] = None
+    approved_by: Optional[int] = None
+    created_at: Optional[datetime] = None
+    approved_at: Optional[datetime] = None
+    shipped_at: Optional[datetime] = None
+    items: List[SalesOrderItemOut] = []
+
+
+class SalesOrderOut(ORMModel):
+    id: int
+    order_no: str
+    customer_id: int
+    status: str
+    total_amount: Decimal
+    remark: Optional[str] = None
+    created_by: Optional[int] = None
+    approved_by: Optional[int] = None
+    created_at: Optional[datetime] = None
+    approved_at: Optional[datetime] = None
+    shipped_at: Optional[datetime] = None

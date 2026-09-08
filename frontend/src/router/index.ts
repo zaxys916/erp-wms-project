@@ -75,6 +75,39 @@ const router = createRouter({
       path: '/users/:id',
       name: 'user-detail',
       component: () => import('@/views/UserDetailView.vue')
+    },
+    // 阶段三：供应商 / 客户
+    {
+      path: '/suppliers',
+      name: 'suppliers',
+      component: () => import('@/views/SuppliersView.vue')
+    },
+    {
+      path: '/customers',
+      name: 'customers',
+      component: () => import('@/views/CustomersView.vue')
+    },
+    // 阶段三：采购 / 销售订单
+    {
+      path: '/purchases',
+      name: 'purchases',
+      component: () => import('@/views/PurchasesView.vue')
+    },
+    {
+      path: '/sales',
+      name: 'sales',
+      component: () => import('@/views/SalesView.vue')
+    },
+    // 阶段三：报表统计 / 安全库存预警
+    {
+      path: '/reports',
+      name: 'reports',
+      component: () => import('@/views/ReportsView.vue')
+    },
+    {
+      path: '/inventory/alerts',
+      name: 'stock-alerts',
+      component: () => import('@/views/StockAlertsView.vue')
     }
   ]
 })

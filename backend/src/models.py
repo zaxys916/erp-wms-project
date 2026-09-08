@@ -6,6 +6,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Integer,
+    Numeric,
     String,
     UniqueConstraint,
 )
@@ -24,6 +25,12 @@ __all__ = [
     "Stocktaking",
     "StocktakingItem",
     "Discrepancy",
+    "Supplier",
+    "Customer",
+    "PurchaseOrder",
+    "PurchaseOrderItem",
+    "SalesOrder",
+    "SalesOrderItem",
 ]
 
 
@@ -57,6 +64,10 @@ class Product(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(100), nullable=False)
     sku = Column(String(50), unique=True)
+    # 业务扩展字段（阶段三）：安全库存阈值、销售价、成本价（用于报表与预警）
+    safety_stock = Column(Integer, nullable=False, default=0)
+    price = Column(Numeric(12, 2), nullable=False, default=0)
+    cost = Column(Numeric(12, 2), nullable=False, default=0)
     created_at = Column(DateTime, default=datetime.now)
 
 
@@ -174,3 +185,98 @@ class Discrepancy(Base):
     status = Column(String(20), default="open")  # open / adjusted
     handled_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.now)
+
+
+# ---------- 阶段三：供应商 / 客户档案 ----------
+class Supplier(Base):
+    """供应商档案。"""
+
+    __tablename__ = "suppliers"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), unique=True, nullable=False)
+    contact = Column(String(50))
+    phone = Column(String(30))
+    address = Column(String(200))
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, onupdate=datetime.now)
+
+
+class Customer(Base):
+    """客户档案。"""
+
+    __tablename__ = "customers"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), unique=True, nullable=False)
+    contact = Column(String(50))
+    phone = Column(String(30))
+    address = Column(String(200))
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, onupdate=datetime.now)
+
+
+# ---------- 阶段三：采购订单 ----------
+class PurchaseOrder(Base):
+    """采购订单：pending -> approved(审核) -> received(收货) / cancelled。"""
+
+    __tablename__ = "purchase_orders"
+
+    id = Column(Integer, primary_key=True)
+    order_no = Column(String(30), unique=True, index=True, nullable=False)
+    supplier_id = Column(Integer, ForeignKey("suppliers.id"), nullable=False, index=True)
+    status = Column(String(20), default="pending")  # pending / approved / received / cancelled
+    total_amount = Column(Numeric(12, 2), nullable=False, default=0)
+    remark = Column(String(255))
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    approved_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.now, index=True)
+    approved_at = Column(DateTime)
+    received_at = Column(DateTime)
+
+
+class PurchaseOrderItem(Base):
+    """采购订单明细：每个产品收货到指定库位 zone_id，并记录单价与金额。"""
+
+    __tablename__ = "purchase_order_item"
+
+    id = Column(Integer, primary_key=True)
+    purchase_order_id = Column(Integer, ForeignKey("purchase_orders.id"), nullable=False, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False, index=True)
+    zone_id = Column(Integer, ForeignKey("zones.id"), nullable=False)
+    quantity = Column(Integer, nullable=False, default=0)
+    unit_price = Column(Numeric(12, 2), nullable=False, default=0)
+    amount = Column(Numeric(12, 2), nullable=False, default=0)
+
+
+# ---------- 阶段三：销售订单 ----------
+class SalesOrder(Base):
+    """销售订单：pending -> approved(审核) -> shipped(发货) / cancelled。"""
+
+    __tablename__ = "sale_orders"
+
+    id = Column(Integer, primary_key=True)
+    order_no = Column(String(30), unique=True, index=True, nullable=False)
+    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False, index=True)
+    status = Column(String(20), default="pending")  # pending / approved / shipped / cancelled
+    total_amount = Column(Numeric(12, 2), nullable=False, default=0)
+    remark = Column(String(255))
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    approved_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.now, index=True)
+    approved_at = Column(DateTime)
+    shipped_at = Column(DateTime)
+
+
+class SalesOrderItem(Base):
+    """销售订单明细：从指定库位 zone_id 发出发货数量，并记录单价与金额。"""
+
+    __tablename__ = "sale_order_item"
+
+    id = Column(Integer, primary_key=True)
+    sale_order_id = Column(Integer, ForeignKey("sale_orders.id"), nullable=False, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False, index=True)
+    zone_id = Column(Integer, ForeignKey("zones.id"), nullable=False)
+    quantity = Column(Integer, nullable=False, default=0)
+    unit_price = Column(Numeric(12, 2), nullable=False, default=0)
+    amount = Column(Numeric(12, 2), nullable=False, default=0)
